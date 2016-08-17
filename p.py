@@ -4,7 +4,7 @@ import clang.cindex
 from clang.cindex import Config
 Config.set_library_path(r"D:\LLVM\bin")
 index = clang.cindex.Index.create()
-fn="p/src/global.c"
+fn="p/src/main2.c"
 f=open(fn,"r")
 fc=f.readlines()
 fc.append('')
@@ -36,6 +36,12 @@ def showToken(node):
     for t in ts:
         r.append(t.spelling)
     return " ".join(r)
+def getTokens(cursor):
+	r=[]
+	ts=cursor.get_tokens()
+	for t in ts:
+	    r.append(t.spelling)
+	return r	
 def showArgument(node):
     r=[]
     ts=node.get_arguments()
@@ -88,12 +94,6 @@ def visit_RETURN_STMT(cursor):
 	for c in cs:
 		r.append(visit(c))
 	return r
-def visit_INTEGER_LITERAL(cursor):
-	print("visit_INTEGER_LITERAL")
-	r=[]
-	for t in cursor.get_tokens():
-		r.append(t.spelling)
-	return r#cursor.displayname#showToken(cursor)
 def visit_unknown(cursor):
 	r=[]
 	for c in cursor.get_children():
@@ -103,6 +103,7 @@ def visit_UNARY_OPERATOR(cursor):# a++;
 	r=[]
 	for t in cursor.get_tokens():
 		r.append(t.spelling)
+	r.pop()
 	return r#cursor.displayname#showToken(cursor)
 def visit_TRANSLATION_UNIT(cursor):
 	r=[]
@@ -114,18 +115,31 @@ def visit_DECL_REF_EXPR(cursor):#a++
 	for t in cursor.get_tokens():
 		r.append(t.spelling)
 	return r#cursor.displayname#showToken(cursor)
-def visit_VAR_DECL(cursor):#a++
+def visit_DECL_STMT(cursor):
 	r=[]
-	for t in cursor.get_tokens():
-		r.append(t.spelling)
+	for c in cursor.get_children():
+		r.append(visit(c))
+	# r.append(";")
+	return r
+def visit_VAR_DECL(cursor):#a++
+	print("var")
+	r=[]
+	r.append(cursor.type.spelling)
+	r.append(cursor.get_definition().spelling)
+	for c in cursor.get_children():
+		r.append("=")
+		r.append(visit(c))
+	# r.append(";")
 	return r#cursor.displayname#showToken(cursor)
 def visit(cursor):
-	print("=cursor info===============================================")
+	print("===cursor info===============================================")
 	print(cursor.kind)
 	print(showSource(cursor))
+	cs=[]
 	for c in cursor.get_children():
 		print(c.kind,showSource(c))
-	print("=end cursor info============================================")
+		cs.append(c)
+	print("===end cursor info============================================")
 	
 	if cursor.kind==clang.cindex.CursorKind.TRANSLATION_UNIT:
 		return visit_TRANSLATION_UNIT(cursor)
@@ -136,15 +150,69 @@ def visit(cursor):
 	elif cursor.kind==clang.cindex.CursorKind.COMPOUND_STMT:
 		return visit_COMPOUND_STMT(cursor)
 	elif cursor.kind==clang.cindex.CursorKind.RETURN_STMT:
-		return visit_RETURN_STMT(cursor)
+		r=["return"]
+		for c in cs:
+			r.append(visit(c))
+		#r.append(";")
+		return r
 	elif cursor.kind==clang.cindex.CursorKind.INTEGER_LITERAL:
-		return visit_INTEGER_LITERAL(cursor)
+		r=[]
+		for t in cursor.get_tokens():
+			r.append(t.spelling)
+		return r#cursor.displayname#showToken(cursor)
 	elif cursor.kind==clang.cindex.CursorKind.UNARY_OPERATOR:
-		return visit_UNARY_OPERATOR(cursor)
+		r=[getTokens(cursor)[0]]
+		#r.append(cursor.canonical.spelling)
+		#r.append(cursor.enum_type)
+		# r.append(cursor.enum_value)
+		#r.append(cursor.displayname)
+		for c in cs:
+			r.append(visit(c))
+		return r#cursor.displayname#showToken(cursor)
 	elif cursor.kind==clang.cindex.CursorKind.DECL_REF_EXPR:
-		return visit_DECL_REF_EXPR(cursor)
+		# r=[cursor.displayname]
+		# for c in cs:
+		# 	r.append("=")
+		# 	r.append(c.spelling)# visit(c))
+		return getTokens(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.DECL_STMT:
+		r=[]
+		for c in cs:
+			r.append(visit(c))
+		return r
+	elif cursor.kind==clang.cindex.CursorKind.FLOATING_LITERAL:
+		r=[]
+		for t in cursor.get_tokens():
+			r.append(t.spelling)
+		print(r)
+		return r
 	elif cursor.kind==clang.cindex.CursorKind.VAR_DECL:
-		return visit_VAR_DECL(cursor)
+		r=[]
+		r.append(cursor.type.spelling)
+		r.append(cursor.spelling)
+		hasInit=False
+		for c in cursor.get_children():
+			r.append("=")
+			r.append(visit(c))
+			hasInit=True
+		if not hasInit:
+			r.append(";")
+		# ts=getTokens(cursor)
+		# n=len(ts)
+		# if ts[n-1]==";":
+		# 	r.append(";")
+		return r#cursor.displayname#showToken(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.BINARY_OPERATOR:
+		r=[]
+		for c in cs:
+			r.append(visit(c))
+		#r.append(";")
+		return r
+	elif cursor.kind==clang.cindex.CursorKind.UNEXPOSED_EXPR:
+		r=[]
+		for c in cs:
+			r.append(visit(c))
+		return r
 	else:
 		return visit_unknown(cursor)
 def showResult(l):
