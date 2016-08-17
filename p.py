@@ -73,10 +73,20 @@ def visit_unknown(cursor):
 	for c in cursor.get_children():
 		r.append(visit(c))
 	return r
-def visit_UNARY_OPERATOR(cursor):
-	pass
-def visit_DECL_REF_EXPR(cursor):
-	pass	
+def visit_UNARY_OPERATOR(cursor):# a++;
+	r=[]
+	r.append(showToken(cursor))
+	r.append(":")
+	for c in cursor.get_children():
+		r.append(visit(c))
+	return r	
+def visit_DECL_REF_EXPR(cursor):#a++
+	r=[]
+	r.append(showToken(cursor))
+	r.append(":")
+	for c in cursor.get_children():
+		r.append(visit(c))
+	return r	
 def visit(cursor):
 	print("=============")
 	print(cursor.kind,cursor.displayname)
@@ -84,9 +94,20 @@ def visit(cursor):
 	for c in cursor.get_children():
 		cs.append(str(c.kind))
 	print(",".join(cs))	
-	func1=dict1.get(cursor.kind)
-	if func1!=None:
-		return func1(cursor)
+	if cursor.kind==clang.cindex.CursorKind.FUNCTION_DECL:
+		return visit_FUNCTION_DECL(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.PARM_DECL:
+		return visit_PARM_DECL(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.COMPOUND_STMT:
+		return visit_COMPOUND_STMT(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.RETURN_STMT:
+		return visit_RETURN_STMT(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.INTEGER_LITERAL:
+		return visit_INTEGER_LITERAL(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.UNARY_OPERATOR:
+		return visit_UNARY_OPERATOR(cursor)
+	elif cursor.kind==clang.cindex.CursorKind.DECL_REF_EXPR:
+		return visit_DECL_REF_EXPR(cursor)
 	else:
 		return visit_unknown(cursor)
 def showResult(l):
@@ -100,14 +121,6 @@ def showResult(l):
 		else:
 			r.append(c)
 	return " ".join(r)
-dict1={clang.cindex.CursorKind.FUNCTION_DECL:visit_FUNCTION_DECL
-	,clang.cindex.CursorKind.COMPOUND_STMT:visit_COMPOUND_STMT
-	,clang.cindex.CursorKind.RETURN_STMT:visit_RETURN_STMT
-	,clang.cindex.CursorKind.PARM_DECL:visit_PARM_DECL
-	,clang.cindex.CursorKind.INTEGER_LITERAL:visit_INTEGER_LITERAL
-	,clang.cindex.CursorKind.UNARY_OPERATOR:visit_UNARY_OPERATOR
-	,clang.cindex.CursorKind.DECL_REF_EXPR:visit_DECL_REF_EXPR
-	}
 print(dir(tu.cursor))	
 res=visit(tu.cursor)
 print(res)
