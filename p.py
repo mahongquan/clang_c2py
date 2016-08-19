@@ -14,7 +14,7 @@ def showSource(cursor):
 	#print(fc,len(fc))
 	start=[cursor.extent.start.line-1,cursor.extent.start.column-1]
 	end=[cursor.extent.end.line-1,cursor.extent.end.column-1]
-	#print(start,end)
+	print(start,end)
 	fc1=fc[start[0]:]
 	end[0]=end[0]-start[0]
 	start[0]=0
@@ -22,7 +22,7 @@ def showSource(cursor):
 	# if cursor.kind==clang.cindex.CursorKind.FUNCTION_DECL:
 	# 	print(fc1)
 	# 	input("hi")
-	#print(start,end)
+	print(start,end)
 	if end[0]==start[0]:
 		end[1]=end[1]-start[1]
 		fc1[0]=fc1[0][:end[1]+1]
@@ -70,20 +70,19 @@ def visit_FUNCTION_DECL(cursor):
 	cs=[]
 	for c in cursor.get_children():
 		cs.append(c)
+	print(cs)
 	r=[cursor.result_type.spelling,cursor.spelling]
 	r.append("(")
-	n=len(cs)
-	i=0
-	for c in cs[:-1]:
+	hasArguments=False
+	for c in cursor.get_arguments():
 		r.append(visit(c))# param
-		if i==n-2:
-			pass
-		else:
-			r.append(",")
-		i+=1
+		r.append(",")
+		hasArguments=True
+	if hasArguments:
+		r.pop() 
 	r.append(")")
-	if len(cs)-1>0:
-		r.append(visit(cs[len(cs)-1]))#visit_COMPOUND_STMT(cs[len(cs)-1]))
+	if len(cs)-1>=0:
+			r.append(visit(cs[len(cs)-1]))#visit_COMPOUND_STMT(cs[len(cs)-1]))
 	return r
 def visit_RETURN_STMT(cursor):
 	print("visit return")
